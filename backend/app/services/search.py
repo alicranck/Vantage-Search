@@ -3,6 +3,7 @@ import torch
 from typing import List, Dict, Any
 from app.db.vector_store import VectorStore
 
+
 class TextEmbedder:
     _instance = None
     _model = None
@@ -26,6 +27,7 @@ class TextEmbedder:
             text_features = TextEmbedder._model.encode_text(text_tokens)
             text_features = text_features / text_features.norm(dim=-1, keepdim=True)
             return text_features.cpu().numpy()[0].tolist()
+
 
 def search_videos(query: str, vector_store: VectorStore, limit: int = 5) -> List[Dict[str, Any]]:
     embedder = TextEmbedder.get_instance()

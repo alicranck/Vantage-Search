@@ -6,6 +6,7 @@ from vision_tools.core.tools.pipeline import VisionPipeline, PipelineConfig
 
 logger = logging.getLogger(__name__)
 
+
 class IndexingService:
     def __init__(self, vector_store: VectorStore):
         self.vector_store = vector_store
@@ -22,12 +23,12 @@ class IndexingService:
             tool_settings={
                 "embedding": {
                     "model": "ViT-B/32", 
-                    "trigger": {"type": "scene_change", "threshold": 0.3}
+                    "trigger": {"type": "stride", "value": 30}
                 },
                 "ov_detection": {
                     "model": "yoloe-11s-seg.onnx", # Using general purpose model
                     "vocabulary": ["person", "car", "dog", "cat", "chair"], # Default vocabulary
-                    "trigger": {"type": "stride", "value": 30} # Every 30 frames (approx 1 sec)
+                    "trigger": {"type": "stride", "value": 30} # Every 1 sec
                 }
             }
         )
@@ -44,21 +45,16 @@ class IndexingService:
                     "video_path": video_path
                 }
                 
-                # Store Embedding
+                # Extract tags if present (detection tool)
+                if "boxes" in data:
+                    classes = list(set([box["cls"] for box in data["boxes"]]))
+                    if classes:
+                        metadata["detected_classes"] = ", ".join(classes)
+                
+                # Store Embedding with metadata
                 if "embedding" in data:
                     self.vector_store.add_embedding(data["embedding"], metadata)
-                
-                # Store Tags (naively in metadata for now, ideally in a separate relation)
-                if "boxes" in data:
-                    # Collect unique classes found in this frame
-                    classes = list(set([box["cls"] for box in data["boxes"]]))
-                    # Note: ChromaDB metadata must be primitive types. Lists might need stringification.
-                    # Or we just rely on embeddings for search and this for "smart filtering" later.
-                    # For now simplifiy: just embedding search is the core req.
-                    pass
-                
-                if "embedding" in data:
-                     logger.debug(f"Indexed frame at {timestamp}")
+                    logger.debug(f"Indexed frame at {timestamp} with metadata: {metadata}")
 
             # Run engine
             async for _ in engine.run_inference(on_data=_persist_data, buffer_delay=0, realtime=False):

@@ -7,6 +7,7 @@ from app.db.vector_store import VectorStore
 from app.services.indexing import IndexingService
 from app.services.search import search_videos
 
+
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,7 @@ indexing_service = IndexingService(vector_store)
 UPLOAD_DIR = "./data/videos"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 
 @router.post("/upload")
 async def upload_video(file: UploadFile = File(...), background_tasks: BackgroundTasks = None):
@@ -39,6 +41,7 @@ async def upload_video(file: UploadFile = File(...), background_tasks: Backgroun
         logger.error(f"Upload failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/search")
 async def search(q: str = Query(...), limit: int = 10):
     try:
@@ -47,6 +50,7 @@ async def search(q: str = Query(...), limit: int = 10):
     except Exception as e:
         logger.error(f"Search failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.delete("/reset")
 async def reset_db():
