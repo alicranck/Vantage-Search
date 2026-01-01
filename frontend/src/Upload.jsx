@@ -39,23 +39,60 @@ const Upload = () => {
     };
 
     return (
-        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-            <h2>Upload Video</h2>
-            <div style={{ border: '2px dashed #ccc', padding: '40px', textAlign: 'center', borderRadius: '8px' }}>
-                <input type="file" onChange={handleFileChange} accept="video/*" />
-                <div style={{ marginTop: '20px' }}>
-                    <button
-                        onClick={handleUpload}
-                        disabled={!file || uploading}
-                        style={{ padding: '10px 20px', fontSize: '16px', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                    >
-                        {uploading ? 'Uploading...' : 'Upload & Index'}
-                    </button>
-                </div>
+        <div className="upload-page fade-in" style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <div className="section-header" style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <h2>Expand Your Library</h2>
+                <p style={{ color: 'var(--text-muted)' }}>Upload videos to make them searchable via Natural Language</p>
             </div>
-            {status && <p style={{ marginTop: '20px', padding: '10px', background: '#f8f9fa' }}>{status}</p>}
+
+            <div className="upload-zone">
+                <div style={{ marginBottom: '2rem' }}>
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                </div>
+
+                <label className="file-input-label" style={{ display: 'block', marginBottom: '1.5rem' }}>
+                    <input
+                        type="file"
+                        onChange={handleFileChange}
+                        accept="video/*"
+                        style={{ display: 'none' }}
+                        id="video-upload"
+                    />
+                    <span className="primary-button" style={{ display: 'inline-block', cursor: 'pointer' }}>
+                        {file ? file.name : 'Choose Video File'}
+                    </span>
+                </label>
+
+                <button
+                    onClick={handleUpload}
+                    disabled={!file || uploading}
+                    className="primary-button"
+                    style={{ background: uploading ? 'var(--text-muted)' : 'var(--text-main)', width: '200px' }}
+                >
+                    {uploading ? 'Processing...' : 'Start Indexing'}
+                </button>
+
+                {status && (
+                    <div style={{
+                        marginTop: '2rem',
+                        padding: '1rem',
+                        borderRadius: '12px',
+                        background: status.includes('Error') ? '#fff1f0' : '#f0fdf4',
+                        color: status.includes('Error') ? 'var(--danger)' : 'var(--success)',
+                        fontSize: '0.9rem',
+                        fontWeight: 500
+                    }}>
+                        {status}
+                    </div>
+                )}
+            </div>
         </div>
     );
+
 };
 
 export default Upload;

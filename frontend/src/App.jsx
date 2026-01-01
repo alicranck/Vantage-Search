@@ -6,30 +6,33 @@ function App() {
   const [view, setView] = useState('search');
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-      <header style={{ marginBottom: '20px', borderBottom: '1px solid #ccc', paddingBottom: '10px' }}>
-        <h1 style={{ display: 'inline-block', marginRight: '20px' }}>Vantage Search</h1>
-        <nav style={{ display: 'inline-block' }}>
-          <button 
-            onClick={() => setView('search')} 
-            style={{ marginRight: '10px', padding: '5px 10px', fontWeight: view === 'search' ? 'bold' : 'normal' }}
-          >
-            Search
-          </button>
-          <button 
-            onClick={() => setView('upload')}
-            style={{ padding: '5px 10px', fontWeight: view === 'upload' ? 'bold' : 'normal' }}
-          >
-            Upload
-          </button>
-        </nav>
+    <div className="container">
+      <header className="app-header fade-in">
+        <div className="header-content">
+          <h1 className="logo">Vantage<span>Search</span></h1>
+          <nav className="nav-menu">
+            <button
+              className={`nav-link ${view === 'search' ? 'active' : ''}`}
+              onClick={() => setView('search')}
+            >
+              Search
+            </button>
+            <button
+              className={`nav-link ${view === 'upload' ? 'active' : ''}`}
+              onClick={() => setView('upload')}
+            >
+              Upload
+            </button>
+          </nav>
+        </div>
       </header>
-      <main>
+      <main className="fade-in">
         {view === 'upload' && <Upload />}
         {view === 'search' && <Search />}
       </main>
     </div>
   );
+
 }
 
 export default App;
