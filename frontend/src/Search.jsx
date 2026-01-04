@@ -4,14 +4,15 @@ const Search = () => {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [searched, setSearched] = useState(false);
 
     const handleSearch = async (e) => {
         e.preventDefault();
         if (!query) return;
 
         setLoading(true);
+        setSearched(true);
         try {
-            // http://localhost:8000/api/search?q=...
             const response = await fetch(`http://localhost:8000/api/search?q=${encodeURIComponent(query)}&limit=10`);
             if (response.ok) {
                 const data = await response.json();
@@ -26,82 +27,175 @@ const Search = () => {
         }
     };
 
+    const quickSearches = ['person walking', 'car driving', 'dog playing', 'outdoor scene'];
+
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
     return (
         <div className="search-page fade-in">
-            <div className="search-container">
-                <h2 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Find Moments in Seconds</h2>
-                <form onSubmit={handleSearch} className="search-box">
-                    <input
-                        type="text"
-                        className="search-input"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search for moments (e.g., 'person walking', 'red car')..."
-                    />
-                    <button type="submit" className="primary-button">
-                        {loading ? 'Searching...' : 'Search'}
-                    </button>
-                </form>
-            </div>
+            {/* Hero Section */}
+            <section className="hero-section">
+                <div className="hero-badge">
+                    <span>⚡</span>
+                    <span>AI-Powered Video Search</span>
+                </div>
+                <h1 className="hero-title">
+                    Find Any Moment <br />
+                    <span className="hero-title-gradient">In Seconds</span>
+                </h1>
+                <p className="hero-subtitle">
+                    Search your entire video library using natural language.
+                    Describe what you're looking for, and we'll find it.
+                </p>
 
+                {/* Search Box */}
+                <div className="search-wrapper">
+                    <form onSubmit={handleSearch} className="search-box-glass">
+                        <div className="search-input-wrapper">
+                            <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="11" cy="11" r="8" />
+                                <path d="m21 21-4.35-4.35" />
+                            </svg>
+                            <input
+                                type="text"
+                                className="search-input"
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                placeholder="Describe the moment you're looking for..."
+                            />
+                        </div>
+                        <button type="submit" className="search-button" disabled={loading}>
+                            {loading ? 'Searching...' : 'Search'}
+                        </button>
+                    </form>
+
+                    {/* Quick Search Chips */}
+                    <div className="search-chips">
+                        {quickSearches.map((term, idx) => (
+                            <button
+                                key={idx}
+                                className="search-chip"
+                                onClick={() => {
+                                    setQuery(term);
+                                }}
+                            >
+                                {term}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Loading State */}
             {loading && (
-                <div style={{ textAlign: 'center', margin: '2rem 0' }}>
+                <div className="loading-state">
                     <div className="loader"></div>
                     <p>Scanning through your videos...</p>
                 </div>
             )}
 
-            <div className="card-grid">
-                {results.map((res, idx) => (
-                    <div key={idx} className="result-card">
-                        <div className="result-content">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                                <span style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}>
-                                    {res.metadata.video_id.slice(0, 8)}
-                                </span>
-                                <span style={{ color: 'var(--success)', fontWeight: 700 }}>
-                                    {Math.round((1 - res.distance) * 100)}% Match
-                                </span>
-                            </div>
-                            <p style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                                <strong>Timestamp:</strong> {res.metadata.timestamp.toFixed(2)}s
-                            </p>
-                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>
-                                {res.metadata.video_path}
-                            </p>
-
-                            {res.metadata.detected_classes && (
-                                <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                    {res.metadata.detected_classes.split(', ').map((cls, i) => (
-                                        <span key={i} style={{
-                                            background: 'rgba(99, 102, 241, 0.08)',
-                                            color: 'var(--primary)',
-                                            padding: '2px 8px',
-                                            borderRadius: '6px',
-                                            fontSize: '0.7rem',
-                                            fontWeight: 700,
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px'
-                                        }}>
-                                            {cls}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
+            {/* Results */}
+            {!loading && results.length > 0 && (
+                <>
+                    <div className="results-header">
+                        <p className="results-count">
+                            Found <strong>{results.length}</strong> relevant moments
+                        </p>
                     </div>
-                ))}
-            </div>
+                    <div className="results-grid">
+                        {results.map((res, idx) => (
+                            <div key={idx} className="result-card fade-in">
+                                <div className="result-video-wrapper">
+                                    <video
+                                        className="result-video"
+                                        controls
+                                        preload="metadata"
+                                        onLoadedMetadata={(e) => {
+                                            // Seek to the start of the clip or the match timestamp
+                                            e.target.currentTime = res.metadata.start_time || res.metadata.timestamp;
+                                        }}
+                                        onTimeUpdate={(e) => {
+                                            // Enforce clip boundary: pause if end_time is reached
+                                            if (res.metadata.end_time && e.target.currentTime >= res.metadata.end_time) {
+                                                e.target.pause();
+                                            }
+                                        }}
+                                    >
+                                        <source src={`http://localhost:8000/api/videos/${res.metadata.video_id}`} type="video/mp4" />
+                                    </video>
+                                    <div className="result-timestamp">
+                                        {formatTime(res.metadata.start_time || res.metadata.timestamp)}
+                                        {res.metadata.end_time && ` - ${formatTime(res.metadata.end_time)}`}
+                                    </div>
+                                </div>
+                                <div className="result-body">
+                                    <div className="result-meta">
+                                        <span className="result-id">
+                                            {res.metadata.original_filename || res.metadata.video_id.slice(0, 8)}
+                                        </span>
+                                        <div className="result-score">
+                                            <div className="score-badge">
+                                                {Math.round((1 - res.distance) * 100)}%
+                                            </div>
+                                        </div>
+                                    </div>
 
-            {results.length === 0 && !loading && query && (
-                <div style={{ textAlign: 'center', marginTop: '4rem', color: 'var(--text-muted)' }}>
-                    <p>No matching moments found. Try a different query!</p>
+                                    {res.metadata.detected_classes && (
+                                        <div className="result-tags">
+                                            {res.metadata.detected_classes.split(', ').slice(0, 3).map((cls, i) => (
+                                                <span key={i} className="result-tag">{cls}</span>
+                                            ))}
+                                            {res.metadata.match_count > 1 && (
+                                                <span className="result-tag" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
+                                                    +{res.metadata.match_count} matches
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <button
+                                        className="result-action"
+                                        onClick={() => {
+                                            const videos = document.querySelectorAll('.result-video');
+                                            if (videos[idx]) {
+                                                videos[idx].currentTime = res.metadata.start_time || res.metadata.timestamp;
+                                                videos[idx].play();
+                                            }
+                                        }}
+                                    >
+                                        <span>▶</span>
+                                        Play Moment
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
+
+
+            {/* Empty State */}
+            {!loading && searched && results.length === 0 && (
+                <div className="empty-state">
+                    <div className="empty-state-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="m21 21-4.35-4.35" />
+                            <path d="M8 8l6 6M14 8l-6 6" strokeLinecap="round" />
+                        </svg>
+                    </div>
+                    <h3 className="empty-state-title">No matching moments found</h3>
+                    <p className="empty-state-text">
+                        Try a different search query or upload more videos to expand your library.
+                    </p>
                 </div>
             )}
         </div>
     );
-
 };
 
 export default Search;
