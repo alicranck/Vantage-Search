@@ -7,6 +7,7 @@ from typing import List, Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
+
 class VectorStore:
     """
     Abstration layer for ChromaDB to store and retrieve video frame embeddings.
@@ -29,7 +30,8 @@ class VectorStore:
             ids=[id]
         )
 
-    def search_embeddings(self, query_embedding: List[float], n_results: int = 5, where: Optional[Dict] = None) -> Dict[str, Any]:
+    def search_embeddings(self, query_embedding: List[float], n_results: int = 5,
+                                     where: Optional[Dict] = None) -> Dict[str, Any]:
         """
         Searches for the nearest neighbors of the query embedding.
         """
