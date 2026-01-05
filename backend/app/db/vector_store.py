@@ -14,8 +14,12 @@ class VectorStore:
     """
     def __init__(self, collection_name: str = "video_frames", persist_dir: str = "chroma_db"):
         self.client = chromadb.PersistentClient(path=persist_dir, settings=Settings(allow_reset=True))
-        self.collection = self.client.get_or_create_collection(name=collection_name)
-        logger.info(f"VectorStore initialized with collection '{collection_name}' at '{persist_dir}'")
+        # Use cosine similarity for embeddings
+        self.collection = self.client.get_or_create_collection(
+            name=collection_name,
+            metadata={"hnsw:space": "cosine"}
+        )
+        logger.info(f"VectorStore initialized with collection '{collection_name}' using cosine similarity at '{persist_dir}'")
 
     def add_embedding(self, embedding: List[float], metadata: Dict[str, Any], id: Optional[str] = None):
         """

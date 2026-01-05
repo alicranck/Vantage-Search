@@ -19,8 +19,11 @@ vector_store = VectorStore(persist_dir="./data/chroma_db")
 indexing_service = IndexingService(vector_store)
 
 UPLOAD_DIR = "./data/videos"
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
+CLIPS_DIR = "./data/clips"
+
+for d in [UPLOAD_DIR, CLIPS_DIR]:
+    if not os.path.exists(d):
+        os.makedirs(d, exist_ok=True)
 
 
 
@@ -139,6 +142,23 @@ async def get_video(video_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/clips/{clip_id}")
+async def get_clip(clip_id: str):
+    """Serve a cut video clip"""
+    try:
+        clip_path = os.path.join(CLIPS_DIR, f"{clip_id}.mp4")
+        if os.path.exists(clip_path):
+            return FileResponse(
+                path=clip_path,
+                media_type="video/mp4",
+                filename=f"{clip_id}.mp4"
+            )
+        raise HTTPException(status_code=404, detail="Clip not found")
+    except Exception as e:
+        logger.error(f"Get clip failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.delete("/videos/{video_id}")
 async def delete_video(video_id: str):
     """Delete a video and all associated data"""
@@ -158,6 +178,13 @@ async def delete_video(video_id: str):
             metadata_file.unlink()
             deleted_files.append(str(metadata_file))
             logger.info(f"Deleted metadata: {metadata_file}")
+            
+        # Delete associated clips
+        for clip_file in Path(CLIPS_DIR).glob(f"{video_id}_*"):
+            if clip_file.is_file():
+                clip_file.unlink()
+                deleted_files.append(str(clip_file))
+                logger.info(f"Deleted clip file: {clip_file}")
         
         # Delete embeddings from vector store
         try:

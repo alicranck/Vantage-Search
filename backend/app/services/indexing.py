@@ -10,11 +10,11 @@ from vision_tools.core.tools.pipeline import VisionPipeline, PipelineConfig
 
 logger = logging.getLogger(__name__)
 
-# Indexing timeout in seconds (10 minutes)
 INDEXING_TIMEOUT = 600
 
 
 class IndexingService:
+
     def __init__(self, vector_store: VectorStore):
         self.vector_store = vector_store
 
@@ -109,13 +109,11 @@ class IndexingService:
             metadata_dir.mkdir(parents=True, exist_ok=True)
             metadata_file = metadata_dir / f"{video_id}.json"
             
-            # Load existing metadata
             metadata = {}
             if metadata_file.exists():
                 with open(metadata_file, 'r') as f:
                     metadata = json.load(f)
             
-            # Update status
             metadata.update({
                 "status": status,
                 "last_updated": datetime.now().isoformat()
@@ -124,7 +122,6 @@ class IndexingService:
             if error:
                 metadata["error"] = error
             
-            # Save metadata
             with open(metadata_file, 'w') as f:
                 json.dump(metadata, f, indent=2)
                 
