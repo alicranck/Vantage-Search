@@ -1,0 +1,296 @@
+{
+    "black_sport_shoes.jpeg": [
+        {
+            "type": "Perfect",
+            "text": "Pair of black athletic sneakers"
+        },
+        {
+            "type": "Perfect",
+            "text": "Black sport shoes on a plain background"
+        },
+        {
+            "type": "Perfect",
+            "text": "Mens black running shoes"
+        },
+        {
+            "type": "Medium",
+            "text": "Dark colored footwear"
+        },
+        {
+            "type": "Medium",
+            "text": "Sporting equipment"
+        },
+        {
+            "type": "Medium",
+            "text": "Clothing accessory"
+        },
+        {
+            "type": "Off",
+            "text": "A ripe yellow banana"
+        },
+        {
+            "type": "Off",
+            "text": "Airplane flying in the clouds"
+        },
+        {
+            "type": "Off",
+            "text": "A group of people at a wedding"
+        },
+        {
+            "type": "Off",
+            "text": "Interior of a modern kitchen"
+        }
+    ],
+    "cartoon_baby_turtle.jpg": [
+        {
+            "type": "Perfect",
+            "text": "Cute cartoon illustration of a baby turtle"
+        },
+        {
+            "type": "Perfect",
+            "text": "Animated green turtle character"
+        },
+        {
+            "type": "Perfect",
+            "text": "Cartoon sea turtle swimming"
+        },
+        {
+            "type": "Medium",
+            "text": "Green animal drawing"
+        },
+        {
+            "type": "Medium",
+            "text": "Reptile illustration"
+        },
+        {
+            "type": "Medium",
+            "text": "Character design for children"
+        },
+        {
+            "type": "Off",
+            "text": "A busy highway at night"
+        },
+        {
+            "type": "Off",
+            "text": "Stainless steel kitchen knife"
+        },
+        {
+            "type": "Off",
+            "text": "Building a brick wall"
+        },
+        {
+            "type": "Off",
+            "text": "A business meeting in progress"
+        }
+    ],
+    "diagram.jpg": [
+        {
+            "type": "Perfect",
+            "text": "A concept map diagram with nodes and edges"
+        },
+        {
+            "type": "Perfect",
+            "text": "Flowchart showing relationships between concepts"
+        },
+        {
+            "type": "Perfect",
+            "text": "Technical diagram explaining a system"
+        },
+        {
+            "type": "Medium",
+            "text": "A drawing with text"
+        },
+        {
+            "type": "Medium",
+            "text": "Information visualization"
+        },
+        {
+            "type": "Medium",
+            "text": "Educational material"
+        },
+        {
+            "type": "Off",
+            "text": "A photograph of a real cat"
+        },
+        {
+            "type": "Off",
+            "text": "A beautiful sunset over the ocean"
+        },
+        {
+            "type": "Off",
+            "text": "A soccer ball on grass"
+        },
+        {
+            "type": "Off",
+            "text": "A person dancing in a club"
+        }
+    ],
+    "ny_city_busy_street.jpg": [
+        {
+            "type": "Perfect",
+            "text": "Busy New York City street people walking"
+        },
+        {
+            "type": "Perfect",
+            "text": "Urban landscape of Manhattan with traffic"
+        },
+        {
+            "type": "Perfect",
+            "text": "Crowded metropolitan street scene"
+        },
+        {
+            "type": "Medium",
+            "text": "City traffic during the day"
+        },
+        {
+            "type": "Medium",
+            "text": "High-rise buildings and cars"
+        },
+        {
+            "type": "Medium",
+            "text": "Outdoor city environment"
+        },
+        {
+            "type": "Off",
+            "text": "A peaceful forest in autumn"
+        },
+        {
+            "type": "Off",
+            "text": "Close-up of a blooming flower"
+        },
+        {
+            "type": "Off",
+            "text": "A newborn baby sleeping"
+        },
+        {
+            "type": "Off",
+            "text": "Scientific data on a chart"
+        }
+    ],
+    "person_standing_old_city.jpg": [
+        {
+            "type": "Perfect",
+            "text": "A person standing in an ancient city alley"
+        },
+        {
+            "type": "Perfect",
+            "text": "Individual posing in a historic stone street"
+        },
+        {
+            "type": "Perfect",
+            "text": "Man standing in an old European town"
+        },
+        {
+            "type": "Medium",
+            "text": "Person in an urban setting"
+        },
+        {
+            "type": "Medium",
+            "text": "Traveler exploring old ruins"
+        },
+        {
+            "type": "Medium",
+            "text": "Architectural background with human"
+        },
+        {
+            "type": "Off",
+            "text": "A deep sea coral reef"
+        },
+        {
+            "type": "Off",
+            "text": "A futuristic spaceship interior"
+        },
+        {
+            "type": "Off",
+            "text": "Microscopic view of bacteria"
+        },
+        {
+            "type": "Off",
+            "text": "A fast food burger combo"
+        }
+    ],
+    "person_walking_in_the_field.jpeg": [
+        {
+            "type": "Perfect",
+            "text": "Person walking through a green grassy field"
+        },
+        {
+            "type": "Perfect",
+            "text": "Man hiking in a wide open meadow"
+        },
+        {
+            "type": "Perfect",
+            "text": "A lone figure walking in nature"
+        },
+        {
+            "type": "Medium",
+            "text": "Nature landscape with a person"
+        },
+        {
+            "type": "Medium",
+            "text": "Outdoor agricultural scene"
+        },
+        {
+            "type": "Medium",
+            "text": "Countryside walk"
+        },
+        {
+            "type": "Off",
+            "text": "Interior of a control room"
+        },
+        {
+            "type": "Off",
+            "text": "A silver wristwatch"
+        },
+        {
+            "type": "Off",
+            "text": "Surgical operation in a hospital"
+        },
+        {
+            "type": "Off",
+            "text": "A crowded shopping mall"
+        }
+    ],
+    "red_sport_car_in_green_field.jpeg": [
+        {
+            "type": "Perfect",
+            "text": "A red sports car parked in a green field"
+        },
+        {
+            "type": "Perfect",
+            "text": "Bright red luxury car on grass"
+        },
+        {
+            "type": "Perfect",
+            "text": "Sleek red vehicle in a rural pasture"
+        },
+        {
+            "type": "Medium",
+            "text": "Automobile in a landscape"
+        },
+        {
+            "type": "Medium",
+            "text": "Red car outdoors"
+        },
+        {
+            "type": "Medium",
+            "text": "Transportation in nature"
+        },
+        {
+            "type": "Off",
+            "text": "A blue whale breaching the water"
+        },
+        {
+            "type": "Off",
+            "text": "An ancient Egyptian pyramid"
+        },
+        {
+            "type": "Off",
+            "text": "A birthday cake with candles"
+        },
+        {
+            "type": "Off",
+            "text": "Students sitting in a classroom"
+        }
+    ]
+}
