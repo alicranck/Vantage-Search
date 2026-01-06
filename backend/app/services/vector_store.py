@@ -1,19 +1,24 @@
+import json
 import uuid
-import time
 import logging
+from collections import defaultdict
 from typing import List, Dict, Any, Optional
+import numpy as np
 import chromadb
 from chromadb.config import Settings
+from app.config import CALIBRATION_FILE
+from .utils import _get_calibration_params
 
 
 logger = logging.getLogger(__name__)
 
 
 class SearchResults:
-    def __init__(self, ids: List[str], metadatas: List[Dict[str, Any]], distances: List[float]):
+    def __init__(self, ids: List[str], metadatas: List[Dict[str, Any]],
+                         similarities: List[float]):
         self.ids = ids
         self.metadatas = metadatas
-        self.distances = distances
+        self.similarities = similarities
 
 
 class VectorStore:
@@ -21,8 +26,8 @@ class VectorStore:
     Abstraction layer for ChromaDB to store and retrieve video frame embeddings.
     """
     def __init__(self, collection_name: str = "video_frames", persist_dir: str = "chroma_db"):
+        self.calibration_params = _get_calibration_params(CALIBRATION_FILE)
         self.client = chromadb.PersistentClient(path=persist_dir, settings=Settings(allow_reset=True))
-        # Use cosine similarity for embeddings
         self.collection = self.client.get_or_create_collection(
             name=collection_name,
             metadata={"hnsw:space": "cosine"}
@@ -60,27 +65,62 @@ class VectorStore:
         Search for records where 'detected_classes' metadata contains any of the provided tags.
         """
         if not tags:
-            return SearchResults(ids=[], metadatas=[], distances=[])
+            return SearchResults(ids=[], metadatas=[], similarities=[])
 
-        or_clauses = [{"detected_classes": {"$contains": tag}} for tag in tags]
-        tag_where_clause = or_clauses[0] if len(or_clauses) == 1 \
-                                                else {"$or": or_clauses}
+        search_limit = limit * 10
         
-        final_where = {"$and": [{"owner_id": owner_id}, tag_where_clause]}
-            
-        logger.debug(f"Tag search where clause: {final_where}")
+        broad_results = self.collection.get(
+            where={"owner_id": owner_id},
+            limit=search_limit,
+            include=["metadatas"]
+        )
+        
+        filtered_results = self._filter_by_tag(broad_results, tags, limit)
+        logger.info(f"Python-side tag search found {len(filtered_results['ids'])} matches" \
+                                                    f"(scanned {len(broad_results['ids'])})")
+        
+        return SearchResults(ids=filtered_results['ids'], 
+                                metadatas=filtered_results['metadatas'], 
+                                similarities=filtered_results['similarities'])
 
-        try:
-            raw_results = self.collection.get(where=final_where, 
-                                                limit=limit, 
-                                                include=["metadatas"])
+    def _filter_by_tag(self, candidates: Dict[str, Dict], tags: List[str], limit: int) -> Dict[str, List]:
             
-            return SearchResults(ids=raw_results['ids'], 
-                                 metadatas=raw_results['metadatas'], 
-                                 distances=[0.0] * len(raw_results['ids']))
-        except Exception as e:
-            logger.warning(f"Tag search failed: {e}")
-            return SearchResults(ids=[], metadatas=[], distances=[])
+        normalized_tags = [t.lower() for t in tags]
+
+        filtered_results = defaultdict(list)                        
+        for i, meta in enumerate(candidates['metadatas']):
+        
+            classes_str = meta.get('detected_classes', '').lower()
+            if not classes_str:
+                continue
+
+            class_confidence_mapping = json.loads(meta['class_confidences'])
+            matched_tags = [tag for tag in normalized_tags if tag in classes_str]
+            if not matched_tags:
+                continue
+
+            max_conf = max(class_confidence_mapping.get(tag, 0.0) for tag in matched_tags)
+            
+            filtered_results['ids'].append(candidates['ids'][i])
+            filtered_results['metadatas'].append(meta)
+            filtered_results['similarities'].append(max_conf)
+                
+            if len(filtered_results['ids']) >= limit:
+                break
+
+        return filtered_results
+
+    def _get_calibrated_confidences(self, raw_distances: List[float]):
+
+        sim_min, sim_max = self.calibration_params
+
+        np_distances = np.array(raw_distances)
+
+        similarities = 1.0 - np_distances
+        confidences = (similarities - sim_min) / (sim_max - sim_min)
+        confidences = np.clip(confidences, 0.0, 1.0)
+
+        return confidences.tolist()      
 
     def delete_embeddings(self, where: Dict[str, Any]):
         """
@@ -93,10 +133,11 @@ class VectorStore:
         self.delete_embeddings({"video_id": video_id})
 
     def collate(self, raw_results: Dict[str, Any]) -> SearchResults:
+        similarities = self._get_calibrated_confidences(raw_results['distances'][0])
         return SearchResults(
             ids=raw_results['ids'][0],
             metadatas=raw_results['metadatas'][0],
-            distances=raw_results['distances'][0]
+            similarities=similarities
         )
         
     def count(self) -> int:

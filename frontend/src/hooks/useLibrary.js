@@ -113,11 +113,32 @@ export const useLibrary = () => {
             });
 
             if (response.ok) {
+                const data = await response.json();
                 setUploadStatus('success');
+
+                // Optimistically add the new video to the list
+                const newVideo = {
+                    id: data.video_id,
+                    filename: file.name,
+                    status: 'processing',
+                    created_at: new Date().toISOString(),
+                    file_size: file.size
+                };
+                setVideos(prev => {
+                    const next = [newVideo, ...prev];
+                    // Also update stats optimistically
+                    setStats({
+                        total: next.length,
+                        indexed: next.filter(v => v.status === 'completed').length,
+                        processing: next.filter(v => v.status === 'processing').length
+                    });
+                    return next;
+                });
+
                 setTimeout(() => {
                     setUploadStatus('');
                     fetchVideos();
-                }, 2000);
+                }, 500); // Fast refresh
                 return true;
             } else {
                 setUploadStatus('error');

@@ -1,11 +1,6 @@
-import uuid
-import os
-import json
 import logging
-import asyncio
 import traceback
 from typing import List, Optional
-from pathlib import Path
 from datetime import datetime
 
 from fastapi import APIRouter, File, UploadFile, BackgroundTasks, HTTPException, Query, Depends
@@ -21,17 +16,6 @@ from app.api.api_utils import upload_video_file, delete_video_file, delete_clips
 
 
 logger = logging.getLogger(__name__)
-
-# Safe debug logging to current directory (likely mapped volume)
-try:
-    file_handler = logging.FileHandler("video_debug.log")
-    file_handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(message)s')
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-except Exception as e:
-    print(f"Failed to setup file logging: {e}")
-
 router = APIRouter()
 
 
@@ -58,13 +42,13 @@ async def upload_video(
         )
         db.create_video(video)
         
-        def run_indexing():
-            asyncio.run(indexing_service.index_video(str(file_path), video_id, owner_id=current_user.id))
-        
         if background_tasks:
-            background_tasks.add_task(run_indexing)
+            background_tasks.add_task(indexing_service.index_video, str(file_path),
+                                         video_id, owner_id=current_user.id)
         
-        return {"video_id": video_id, "status": "uploaded_and_indexing_started", "filename": file.filename}
+        return {"video_id": video_id, 
+                "status": "uploaded_and_indexing_started", 
+                "filename": file.filename}
     except Exception as e:
         logger.error(f"Upload failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -148,10 +132,8 @@ async def retry_indexing(
         except Exception as e:
             logger.warning(f"Failed to clear embeddings for {video_id}: {e}")
         
-        def run_indexing():
-            asyncio.run(indexing_service.index_video(str(video_file), video_id, owner_id=current_user.id))
-        
-        background_tasks.add_task(run_indexing)
+        background_tasks.add_task(indexing_service.index_video, str(video_file),
+                                     video_id, owner_id=current_user.id)
         
         return {"status": "retry_started", "video_id": video_id}
     except HTTPException:

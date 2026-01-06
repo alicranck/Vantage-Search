@@ -16,7 +16,6 @@ class VideoMetadata(BaseModel):
 
 class Moment(BaseModel):
     id: str
-    distance: float
     confidence: float
     metadata: VideoMetadata
     match_type: str = Field(default="unknown") # 'vector' or 'tag'

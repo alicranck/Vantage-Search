@@ -18,7 +18,7 @@ export const ResultCard = ({ result }) => {
         return 'low';
     };
 
-    const score = Math.max(0, Math.round(result.confidence ?? (1 - result.distance) * 100));
+    const score = Math.round(result.confidence || 0);
     const scoreVariant = getScoreVariant(score);
 
     const handlePlay = () => {
@@ -114,7 +114,7 @@ export const ResultCard = ({ result }) => {
                         )}
                     </div>
                     <div className="result-id font-mono" style={{ fontSize: '9px', color: 'var(--text-tertiary)' }}>
-                        dist: {result.distance?.toFixed(4)} · conf: {result.confidence?.toFixed(1)}%
+                        conf: {result.confidence?.toFixed(1)}%
                     </div>
                 </div>
 

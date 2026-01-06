@@ -1,6 +1,5 @@
 import os
 import logging
-import traceback
 import numpy as np
 from collections import defaultdict
 from typing import List, Dict, Any, Optional
@@ -17,7 +16,7 @@ from app.config import (
     SIGLIP2_MODEL_ID
 )
 from vision_tools.core.tools.embedder import SigLIP2Embedder
-from .utils import cut_video_clip, _get_calibration_params
+from .utils import cut_video_clip
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +26,6 @@ class SearchService:
     def __init__(self, vector_store: VectorStore, device: str = "cpu"):
         self.vector_store = vector_store
         self.device = device
-        self.calibration_params = _get_calibration_params(CALIBRATION_FILE)
         self.embedder = self._load_embedder()
 
     def _load_embedder(self) -> SigLIP2Embedder:
@@ -37,8 +35,7 @@ class SearchService:
         logger.info("SigLIP2Embedder initialized for search")
         return emebdder
 
-    def search_videos(self, query: str, owner_id: int,
-                        limit: int = 5) -> List[Moment]:
+    def search_videos(self, query: str, owner_id: int, limit: int = 5) -> List[Moment]:
         """
         Search for videos utilizing both vector similarity and explicit tag matching.
         """
@@ -48,7 +45,7 @@ class SearchService:
         merged_results = self._merge_and_rank_results(vector_results, tag_results)
         
         moments = self._cluster_moments(merged_results, CLUSTER_BUFFER_SECONDS)
-        moments.sort(key=lambda x: x.distance)
+        moments.sort(key=lambda x: x.confidence, reverse=True)
         
         return moments[:limit]
 
@@ -64,7 +61,7 @@ class SearchService:
                                                                  where=where_filter)
         except Exception as e:
             logger.warning(f"Vector search failed: {e}")
-            return SearchResults(ids=[], metadatas=[], distances=[])
+            return SearchResults(ids=[], metadatas=[], similarities=[])
 
         return search_results
 
@@ -77,34 +74,34 @@ class SearchService:
         logger.info(f"Tag Search: Query='{query}' -> Keywords={significant_words}")
         
         if not significant_words:
-            return SearchResults(ids=[], metadatas=[], distances=[])
+            return SearchResults(ids=[], metadatas=[], similarities=[])
             
         candidate_limit = limit * 10
+
+        try:
+            search_results = self.vector_store.search_by_tags(significant_words, 
+                                                    owner_id=owner_id, 
+                                                    limit=candidate_limit)
+        except Exception as e:
+            logger.error(f"Tag search failed: {e}")
+            return SearchResults(ids=[], metadatas=[], similarities=[])
         
-        res = self.vector_store.search_by_tags(significant_words, 
-                                                owner_id=owner_id, 
-                                                limit=candidate_limit)
-        logger.info(f"Tag Search Found {len(res.ids)} raw matches")
-        return res
+        return search_results
 
     def _merge_and_rank_results(self, vector_results: SearchResults, 
-                                tag_results: SearchResults) -> Dict[str, Dict]:
+                                    tag_results: SearchResults) -> Dict[str, Dict]:
      
         merged_results = defaultdict(list)
 
-        confidences = self._get_calibrated_confidences(vector_results.distances)
-        relevant_results_indices = np.where(np.array(confidences) >= CONFIDENCE_THRESHOLD)[0]
+        confidences = np.array(vector_results.similarities)
+        relevant_results_indices = np.where(confidences >= CONFIDENCE_THRESHOLD)[0]
+
         for idx in relevant_results_indices:
             metadata = vector_results.metadatas[idx]
-            video_id = metadata.get('video_id')
-            
-            if not video_id:
-                logger.warning(f"Result missing video_id in metadata: {vector_results.ids[idx]}")
-                continue
+            video_id = metadata['video_id']
                 
             merged_results[video_id].append({
                 "timestamp": metadata['timestamp'],
-                "distance": vector_results.distances[idx],
                 "confidence": round(confidences[idx] * 100, 2),
                 "metadata": metadata,
                 "source": "vector"
@@ -112,20 +109,17 @@ class SearchService:
 
         # Process Tag Results
         for i, meta in enumerate(tag_results.metadatas):
-            video_id = meta.get('video_id')
-            if not video_id:
-                continue
+            video_id = meta['video_id']
             
             merged_results[video_id].append({
                 "timestamp": meta['timestamp'],
-                "distance": 0.0,
-                "confidence": 100,
+                "confidence": round(tag_results.similarities[i] * 100, 2),
                 "metadata": meta,
                 "source": "tag"
             })
                 
         return merged_results
-
+                
     def _cluster_moments(self, merged_results: Dict[str, Dict], 
                             buffer_seconds: float) -> List[Moment]:
         
@@ -151,7 +145,7 @@ class SearchService:
     @staticmethod
     def _create_moment(video_id: str, matches: List[Dict]) -> Moment:
         """Process a group of frame matches into a single 'moment' result."""
-        best_match = min(matches, key=lambda x: x['distance'])
+        best_match = max(matches, key=lambda x: x['confidence'])
         video_path = best_match['metadata'].get('video_path')
             
         start_time = max(0, min(m['timestamp'] for m in matches) - TIME_PADDING_SECONDS)
@@ -163,12 +157,9 @@ class SearchService:
         if video_path and os.path.exists(video_path):
             try:
                 clip_path = cut_video_clip(CLIPS_DIR, video_path, start_time, end_time, clip_id)
-                print(f"DEBUG: Clip created at {clip_path}")
             except Exception as e:
-                print(f"DEBUG: Failed to cut clip: {e}")
                 logger.error(f"Failed to cut clip: {e}")
         else:
-            print(f"DEBUG: Video path missing or invalid: {video_path}")
             logger.warning(f"Video path missing or invalid: {video_path}")
         
         metadata = best_match['metadata'].copy()
@@ -183,22 +174,9 @@ class SearchService:
         
         return Moment(
             id=clip_id,
-            distance=best_match['distance'],
             confidence=best_match['confidence'],
             metadata=VideoMetadata(**metadata),
             match_type=best_match['source'],
             type="clip",
             clip_url=f"/api/clips/{clip_id}" if clip_path else None
         )
-
-    def _get_calibrated_confidences(self, raw_distances: List[float]):
-
-        sim_min, sim_max = self.calibration_params
-
-        np_distances = np.array(raw_distances)
-
-        similarities = 1.0 - np_distances
-        confidences = (similarities - sim_min) / (sim_max - sim_min)
-        confidences = np.clip(confidences, 0.0, 1.0)
-
-        return confidences.tolist()

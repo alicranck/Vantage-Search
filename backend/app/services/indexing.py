@@ -3,11 +3,9 @@ import os
 import json
 import asyncio
 import traceback
-from pathlib import Path
-from datetime import datetime
 
 from app.services.vector_store import VectorStore
-from app.config import INDEXING_TIMEOUT, DETECTION_THRESHOLD
+from app.config import INDEXING_TIMEOUT, DETECTION_THRESHOLD, MAX_DETECTIONS
 from app.db.engine import engine, DBClient
 from sqlmodel import Session
 from vision_tools.engine.video_engine import VideoInferenceEngine
@@ -64,22 +62,30 @@ class IndexingService:
         )
 
         pipeline = VisionPipeline(pipeline_config)
-        engine = VideoInferenceEngine(pipeline, video_path)
-        
-        logger.info(f"Running inference engine for {video_id}...")
-        
-        async for _ in engine.run_inference(
-            on_data=lambda data: self._persist_inference_data(data, video_id, video_path, owner_id), 
-            buffer_delay=0, 
-            realtime=False
-        ):
-            pass
-        
-        # Cleanup
-        pipeline.unload_tools()
-        logger.info(f"Finished indexing {video_id}")
+        errors = []
+        try:
+            engine = VideoInferenceEngine(pipeline, video_path)
+            
+            logger.info(f"Running inference engine for {video_id}...")
+            
+            async for _ in engine.run_inference(
+                on_data=lambda data: self._persist_inference_data(data, video_id, video_path, owner_id, errors), 
+                buffer_delay=0, 
+                realtime=False
+            ):
+                pass
+            
+            if errors:
+                logger.error(f"Inference loop finished but errors were captured: {errors[0]}")
+                raise errors[0]
+            
+            logger.info(f"Finished current inference pass for {video_id}")
+        finally:
+            # Cleanup must always happen
+            pipeline.unload_tools()
+            logger.info(f"Unloaded indexing tools for {video_id}")
 
-    async def _persist_inference_data(self, data, video_id: str, video_path: str, owner_id: int):
+    async def _persist_inference_data(self, data, video_id: str, video_path: str, owner_id: int, errors: list):
         """Persist inference results to vector store"""
         tools_run = data.get('tools_run')
         if not tools_run:
@@ -93,18 +99,40 @@ class IndexingService:
             "owner_id": owner_id
         }
         
-        # Extract tags if present (detection tool)
-        if "boxes" in data:
-            valid_boxes = [box for box in data["boxes"] if box["conf"] >= DETECTION_THRESHOLD]            
-            class_indices = list(set([box["cls"] for box in valid_boxes]))
-            class_names = data.get("class_names", [])
-            classes = [class_names[i] for i in class_indices if i < len(class_names)]
-            if classes:
+        try:
+            # Extract tags if present (detection tool)
+            if "boxes" in data:
+                # Sort boxes by confidence and take only those above threshold and maximum MAX_DETECTIONS
+                valid_boxes = [box for box in data["boxes"] if box["conf"] >= DETECTION_THRESHOLD]            
+                valid_boxes.sort(key=lambda box: box["conf"], reverse=True)
+                valid_boxes = valid_boxes[:MAX_DETECTIONS]
+
+                class_indices = list(set([box["cls"] for box in valid_boxes]))
+                class_names = data.get("class_names", [])
+                classes = [class_names[i] for i in class_indices if i < len(class_names)]
+                
+                class_confidences = {}
+                if classes:
+                    for box in valid_boxes:
+                        cls_idx = box["cls"]
+                        conf = float(box["conf"])
+                        if cls_idx < len(class_names):
+                            cls_name = class_names[cls_idx]
+                            # Keep max confidence for each class
+                            class_confidences[cls_name] = max(class_confidences.get(cls_name, 0.0), conf)
+                
                 metadata["detected_classes"] = ", ".join(classes)
-        
-        # Store Embedding with metadata
-        if "embedding" in data:
-            self.vector_store.add_embedding(data["embedding"], metadata)
+                metadata["class_confidences"] = json.dumps(class_confidences)
+            
+            # Store Embedding with metadata
+            if "embedding" in data:
+                self.vector_store.add_embedding(data["embedding"], metadata)
+
+        except Exception as e:
+            logger.error(f"Error persisting inference data for {video_id}: {e}")
+            logger.error(traceback.format_exc())
+            errors.append(e)
+            raise e # Re-raise to ensure the process fails
 
     def _update_metadata(self, video_id: str, status: str, error: str = None):
         """Update the metadata for a video in the database"""
