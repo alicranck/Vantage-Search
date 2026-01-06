@@ -22,6 +22,7 @@ VECTOR_COLLECTION_NAME = "video_frames"
 INDEXING_TIMEOUT = 600
 
 # Search
+SIGLIP2_MODEL_ID = "google/siglip2-base-patch16-384"
 TIME_PADDING_SECONDS = 0.5
 CLUSTER_BUFFER_SECONDS = 2.0
 CONFIDENCE_THRESHOLD = 0.25
@@ -30,4 +31,3 @@ STOP_WORDS = {"a", "an", "the", "in", "on", "at",
                "with", "by", "for", "of", "and",
                 "is", "are"}
 
-SIGLIP2_MODEL_ID = "google/siglip2-base-patch16-384"

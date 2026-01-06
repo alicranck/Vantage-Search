@@ -6,8 +6,10 @@ import traceback
 from pathlib import Path
 from datetime import datetime
 
-from app.db.vector_store import VectorStore
-from app.core.config import METADATA_DIR, INDEXING_TIMEOUT
+from app.services.vector_store import VectorStore
+from app.config import INDEXING_TIMEOUT
+from app.db.engine import engine, DBClient
+from sqlmodel import Session
 from vision_tools.engine.video_engine import VideoInferenceEngine
 from vision_tools.core.tools.pipeline import VisionPipeline, PipelineConfig
 
@@ -104,30 +106,12 @@ class IndexingService:
             self.vector_store.add_embedding(data["embedding"], metadata)
 
     def _update_metadata(self, video_id: str, status: str, error: str = None):
-        """Update the metadata file for a video"""
+        """Update the metadata for a video in the database"""
         try:
-            if not METADATA_DIR.exists():
-                METADATA_DIR.mkdir(parents=True, exist_ok=True)
-                
-            metadata_file = METADATA_DIR / f"{video_id}.json"
-            
-            metadata = {}
-            if metadata_file.exists():
-                with open(metadata_file, 'r') as f:
-                    metadata = json.load(f)
-            
-            metadata.update({
-                "status": status,
-                "last_updated": datetime.now().isoformat()
-            })
-            
-            if error:
-                metadata["error"] = error
-            
-            with open(metadata_file, 'w') as f:
-                json.dump(metadata, f, indent=2)
-                
-            logger.info(f"Updated metadata for {video_id}: status={status}")
+            with Session(engine) as session:
+                db = DBClient(session)
+                db.update_video_status(video_id, status, error)
+                logger.info(f"Updated metadata for {video_id}: status={status}")
             
         except Exception as e:
             logger.error(f"Failed to update metadata for {video_id}: {e}")

@@ -1,11 +1,12 @@
 import logging
 from fastapi import APIRouter, Query, HTTPException
 from fastapi.responses import FileResponse
-from app.core.security import verify_video_access_token
-from app.core.config import CLIPS_DIR
+from app.api.security import verify_video_access_token
+from app.config import CLIPS_DIR
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
 
 @router.get("/clips/{clip_id}")
 async def get_clip(clip_id: str, token: str = Query(...)):

@@ -4,9 +4,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from jose import jwt, JWTError
-from sqlmodel import Session, select
 
-from app.core.security import (
+from app.api.security import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     ALGORITHM,
     SECRET_KEY,
@@ -15,14 +14,14 @@ from app.core.security import (
     verify_password,
 )
 from app.db.models import User, UserCreate, UserRead
-from app.db.engine import get_session
+from app.db.engine import get_db, DBClient
 
 
 router = APIRouter(tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
-def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], session: Session = Depends(get_session)):
+def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: DBClient = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -36,32 +35,28 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], session: Ses
     except JWTError:
         raise credentials_exception
         
-    user = session.exec(select(User).where(User.email == email)).first()
+    user = db.get_user_by_email(email)
     if user is None:
         raise credentials_exception
     return user
 
 
 @router.post("/register", response_model=UserRead)
-def register_user(user: UserCreate, session: Session = Depends(get_session)):
-    db_user = session.exec(select(User).where(User.email == user.email)).first()
+def register_user(user: UserCreate, db: DBClient = Depends(get_db)):
+    db_user = db.get_user_by_email(user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
     hashed_password = get_password_hash(user.password)
-    new_user = User.from_orm(user, update={"hashed_password": hashed_password})
-    session.add(new_user)
-    session.commit()
-    session.refresh(new_user)
-    return new_user
+    return db.create_user(user, hashed_password)
 
 
 @router.post("/token")
 def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    session: Session = Depends(get_session)
+    db: DBClient = Depends(get_db)
 ):
-    user = session.exec(select(User).where(User.email == form_data.username)).first()
+    user = db.get_user_by_email(form_data.username)
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -1,10 +1,10 @@
-
-import chromadb
-from chromadb.config import Settings
 import uuid
 import time
 import logging
 from typing import List, Dict, Any, Optional
+import chromadb
+from chromadb.config import Settings
+
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,8 @@ class VectorStore:
         )
         return self.collate(raw_results)
 
-    def search_by_tags(self, tags: List[str], owner_id: Optional[int] = None, limit: int = 10) -> SearchResults:
+    def search_by_tags(self, tags: List[str], owner_id: int,
+                         limit: int = 10) -> SearchResults:
         """
         Search for records where 'detected_classes' metadata contains any of the provided tags.
         """
@@ -55,30 +56,21 @@ class VectorStore:
             return SearchResults(ids=[], metadatas=[], distances=[])
 
         or_clauses = [{"detected_classes": {"$contains": tag}} for tag in tags]
+        tag_where_clause = or_clauses[0] if len(or_clauses) == 1 \
+                                                else {"$or": or_clauses}
         
-        if len(or_clauses) == 1:
-            tag_where_clause = or_clauses[0]
-        else:
-            tag_where_clause = {"$or": or_clauses}
-        
-        # Combine with owner_id if needed
-        if owner_id:
-            final_where = {"$and": [{"owner_id": owner_id}, tag_where_clause]}
-        else:
-            final_where = tag_where_clause
+        final_where = {"$and": [{"owner_id": owner_id}, tag_where_clause]}
             
         logger.debug(f"Tag search where clause: {final_where}")
 
         try:
-            raw_results = self.collection.get(
-                where=final_where,
-                limit=limit,
-                include=["metadatas"]
-            )
+            raw_results = self.collection.get(where=final_where, 
+                                                limit=limit, 
+                                                include=["metadatas"])
             
             return SearchResults(ids=raw_results['ids'], 
                                  metadatas=raw_results['metadatas'], 
-                                  distances=[0.0] * len(raw_results['ids']))
+                                 distances=[0.0] * len(raw_results['ids']))
         except Exception as e:
             logger.warning(f"Tag search failed: {e}")
             return SearchResults(ids=[], metadatas=[], distances=[])
@@ -89,6 +81,9 @@ class VectorStore:
         Example: vector_store.delete_embeddings({"video_id": "123"})
         """
         self.collection.delete(where=where)
+
+    def delete_by_video_id(self, video_id: str):
+        self.delete_embeddings({"video_id": video_id})
 
     def collate(self, raw_results: Dict[str, Any]) -> SearchResults:
         return SearchResults(

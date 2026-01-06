@@ -1,14 +1,12 @@
-import os
-import json
 import logging
 import traceback
 import numpy as np
 from collections import defaultdict
 from typing import List, Dict, Any, Optional
 
-from app.db.vector_store import VectorStore, SearchResults
-from app.domain.models import Moment, VideoMetadata
-from app.core.config import (
+from app.services.vector_store import VectorStore, SearchResults
+from app.services.structs import Moment, VideoMetadata
+from app.config import (
     CLIPS_DIR, 
     CALIBRATION_FILE, 
     TIME_PADDING_SECONDS, 

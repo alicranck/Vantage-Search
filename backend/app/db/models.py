@@ -1,4 +1,5 @@
 from typing import Optional
+from datetime import datetime
 from sqlmodel import Field, SQLModel
 
 
@@ -20,3 +21,13 @@ class UserRead(UserBase):
 class UserUpdate(SQLModel):
     full_name: Optional[str] = None
     password: Optional[str] = None
+
+class Video(SQLModel, table=True):
+    id: str = Field(primary_key=True)
+    owner_id: int = Field(foreign_key="user.id", index=True)
+    video_path: str
+    filename: str
+    status: str
+    error: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

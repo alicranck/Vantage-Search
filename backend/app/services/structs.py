@@ -14,12 +14,6 @@ class VideoMetadata(BaseModel):
     clip_path: Optional[str] = None
     detected_classes: Optional[str] = None
 
-class Video(BaseModel):
-    video_id: str
-    filename: Optional[str] = None
-    status: str = Field(default="processing")
-    uploaded_at: Optional[str] = None
-
 class Moment(BaseModel):
     id: str
     distance: float
