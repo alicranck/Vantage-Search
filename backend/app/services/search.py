@@ -1,3 +1,4 @@
+import os
 import logging
 import traceback
 import numpy as np
@@ -29,7 +30,7 @@ class SearchService:
         self.calibration_params = _get_calibration_params(CALIBRATION_FILE)
         self.embedder = self._load_embedder()
 
-    def _load_embedder() -> SigLIP2Embedder:
+    def _load_embedder(self) -> SigLIP2Embedder:
         emebdder = SigLIP2Embedder(model_id=SIGLIP2_MODEL_ID,
                                         config={}, device=self.device)
         emebdder.load_tool({})
@@ -71,48 +72,63 @@ class SearchService:
 
         query_words = [w.lower() for w in query.split()]
         significant_words = [w for w in query_words if w 
-                                not in STOP_WORDS and len(w) > 2]    
+                                not in STOP_WORDS and len(w) > 2]
+        
+        logger.info(f"Tag Search: Query='{query}' -> Keywords={significant_words}")
+        
+        if not significant_words:
+            return SearchResults(ids=[], metadatas=[], distances=[])
+            
         candidate_limit = limit * 10
         
         res = self.vector_store.search_by_tags(significant_words, 
                                                 owner_id=owner_id, 
                                                 limit=candidate_limit)
-
+        logger.info(f"Tag Search Found {len(res.ids)} raw matches")
         return res
 
     def _merge_and_rank_results(self, vector_results: SearchResults, 
                                 tag_results: SearchResults) -> Dict[str, Dict]:
      
-        merged_results = {} # id -> {confidence, val...}
+        merged_results = defaultdict(list)
 
         confidences = self._get_calibrated_confidences(vector_results.distances)
-        relevant_results_indices = np.where(confidences >= CONFIDENCE_THRESHOLD)[0]
+        relevant_results_indices = np.where(np.array(confidences) >= CONFIDENCE_THRESHOLD)[0]
         for idx in relevant_results_indices:
-            vid = vector_results.ids[idx]            
-            merged_results[vid] = {
-                "timestamp": vector_results.metadatas[idx]['timestamp'],
+            metadata = vector_results.metadatas[idx]
+            video_id = metadata.get('video_id')
+            
+            if not video_id:
+                logger.warning(f"Result missing video_id in metadata: {vector_results.ids[idx]}")
+                continue
+                
+            merged_results[video_id].append({
+                "timestamp": metadata['timestamp'],
                 "distance": vector_results.distances[idx],
                 "confidence": round(confidences[idx] * 100, 2),
-                "metadata": vector_results.metadatas[idx],
+                "metadata": metadata,
                 "source": "vector"
-            }
+            })
 
         # Process Tag Results
-        for i, vid in enumerate(tag_results.ids):
-            merged_results[vid] = {
-                "timestamp": tag_results.metadatas[i]['timestamp'],
+        for i, meta in enumerate(tag_results.metadatas):
+            video_id = meta.get('video_id')
+            if not video_id:
+                continue
+            
+            merged_results[video_id].append({
+                "timestamp": meta['timestamp'],
                 "distance": 0.0,
                 "confidence": 100,
-                "metadata": tag_results.metadatas[i],
+                "metadata": meta,
                 "source": "tag"
-            }
+            })
                 
         return merged_results
 
-    @staticmethod
-    def _cluster_moments(merged_results: Dict[str, Dict], 
+    def _cluster_moments(self, merged_results: Dict[str, Dict], 
                             buffer_seconds: float) -> List[Moment]:
-
+        
         moments = []
         for video_id, matches in merged_results.items():
         
@@ -137,7 +153,7 @@ class SearchService:
         """Process a group of frame matches into a single 'moment' result."""
         best_match = min(matches, key=lambda x: x['distance'])
         video_path = best_match['metadata'].get('video_path')
-        
+            
         start_time = max(0, min(m['timestamp'] for m in matches) - TIME_PADDING_SECONDS)
         end_time = max(m['timestamp'] for m in matches) + TIME_PADDING_SECONDS
         
@@ -145,7 +161,15 @@ class SearchService:
         
         clip_path = None
         if video_path and os.path.exists(video_path):
-            clip_path = cut_video_clip(CLIPS_DIR, video_path, start_time, end_time, clip_id)
+            try:
+                clip_path = cut_video_clip(CLIPS_DIR, video_path, start_time, end_time, clip_id)
+                print(f"DEBUG: Clip created at {clip_path}")
+            except Exception as e:
+                print(f"DEBUG: Failed to cut clip: {e}")
+                logger.error(f"Failed to cut clip: {e}")
+        else:
+            print(f"DEBUG: Video path missing or invalid: {video_path}")
+            logger.warning(f"Video path missing or invalid: {video_path}")
         
         metadata = best_match['metadata'].copy()
         metadata.update({
@@ -159,10 +183,10 @@ class SearchService:
         
         return Moment(
             id=clip_id,
-            distance=best_match.distance,
-            confidence=best_match.confidence,
-            metadata=VideoMetadata(**metadata_dict),
-            match_type=best_match.source,
+            distance=best_match['distance'],
+            confidence=best_match['confidence'],
+            metadata=VideoMetadata(**metadata),
+            match_type=best_match['source'],
             type="clip",
             clip_url=f"/api/clips/{clip_id}" if clip_path else None
         )

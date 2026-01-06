@@ -26,7 +26,11 @@ export const ResultCard = ({ result }) => {
             if (!result.clip_url) {
                 videoRef.current.currentTime = result.metadata.start_time || result.metadata.timestamp;
             } else {
-                videoRef.current.currentTime = 0;
+                // Clip: Seek to best match offset relative to clip start
+                const clipStart = result.metadata.start_time || 0;
+                const matchTime = result.metadata.timestamp || 0;
+                const relativeTime = Math.max(0, matchTime - clipStart);
+                videoRef.current.currentTime = relativeTime;
             }
             videoRef.current.play();
         }
@@ -45,9 +49,13 @@ export const ResultCard = ({ result }) => {
         }
     };
 
-    const videoSrc = accessKey ? (result.clip_url
-        ? `http://localhost:8000${result.clip_url}?token=${accessKey}`
-        : `http://localhost:8000/api/videos/${result.metadata.video_id}?token=${accessKey}`) : '';
+    let videoSrc = '';
+    if (accessKey) {
+        videoSrc = result.clip_url
+            ? `http://localhost:8000${result.clip_url}?token=${accessKey}`
+            : `http://localhost:8000/api/videos/${result.metadata.video_id}?token=${accessKey}`;
+        console.log(`[Result] Video URL for ${result.metadata.video_id}:`, videoSrc);
+    }
 
     const primaryTag = result.metadata.detected_classes?.split(', ')[0];
 
@@ -61,17 +69,24 @@ export const ResultCard = ({ result }) => {
                 aria-label="Play video clip"
                 onKeyDown={(e) => e.key === 'Enter' && handlePlay()}
             >
-                <video
-                    ref={videoRef}
-                    className="result-video"
-                    controls
-                    preload="metadata"
-                    onLoadedMetadata={handleLoadedMetadata}
-                    onTimeUpdate={handleTimeUpdate}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <source src={videoSrc} type="video/mp4" />
-                </video>
+                {accessKey ? (
+                    <video
+                        ref={videoRef}
+                        className="result-video"
+                        controls
+                        preload="metadata"
+                        playsInline
+                        onLoadedMetadata={handleLoadedMetadata}
+                        onTimeUpdate={handleTimeUpdate}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <source src={videoSrc} type="video/mp4" />
+                    </video>
+                ) : (
+                    <div className="flex items-center justify-center h-full w-full bg-gray-900">
+                        <div className="animate-pulse bg-gray-800 w-full h-full"></div>
+                    </div>
+                )}
 
                 <div className="result-timestamp">
                     {formatTime(result.metadata.start_time || result.metadata.timestamp)}

@@ -25,11 +25,25 @@ const AuthenticatedApp = () => {
           }
         });
         if (response.ok) {
-          const data = await response.json();
-          const videos = data.videos || [];
+          const videosData = await response.json();
+          const videos = Array.isArray(videosData) ? videosData : (videosData.videos || []);
+
+          // Fetch Vector Stats
+          let vectorCount = 0;
+          try {
+            const statsRes = await fetch('http://localhost:8000/api/stats', {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (statsRes.ok) {
+              const statsData = await statsRes.json();
+              vectorCount = statsData.total_frames_analyzed || 0;
+            }
+          } catch (e) { console.warn("Vector stats failed", e); }
+
           setStats({
             videos: videos.length,
-            processing: videos.filter(v => v.status === 'processing').length
+            processing: videos.filter(v => v.status === 'processing').length,
+            vector_frames: vectorCount
           });
         }
       } catch (error) {

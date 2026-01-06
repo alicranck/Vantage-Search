@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSearch } from '../hooks/useSearch';
 import { SearchHero } from '../components/features/search/SearchHero';
 import { ResultsGrid } from '../components/features/search/ResultsGrid';
 import { SearchXIcon } from '../components/common/Icon';
+import { Button } from '../components/common/Button';
 
 export const SearchPage = () => {
     const {
@@ -13,6 +14,15 @@ export const SearchPage = () => {
         searched,
         performSearch
     } = useSearch();
+
+    const [sourceFilter, setSourceFilter] = useState('all');
+
+    const filteredResults = results.filter(r => {
+        if (sourceFilter === 'all') return true;
+        if (sourceFilter === 'vector') return r.match_type === 'vector';
+        if (sourceFilter === 'tag') return r.match_type !== 'vector';
+        return true;
+    });
 
     return (
         <div className="search-page">
@@ -34,10 +44,34 @@ export const SearchPage = () => {
                 <>
                     <div className="results-header">
                         <p className="results-count">
-                            Found <strong>{results.length}</strong> relevant moment{results.length !== 1 ? 's' : ''}
+                            Found <strong>{filteredResults.length}</strong> relevant moment{filteredResults.length !== 1 ? 's' : ''}
                         </p>
+
+                        <div className="flex gap-2">
+                            <Button
+                                variant={sourceFilter === 'all' ? 'primary' : 'secondary'}
+                                size="sm"
+                                onClick={() => setSourceFilter('all')}
+                            >
+                                All
+                            </Button>
+                            <Button
+                                variant={sourceFilter === 'vector' ? 'primary' : 'secondary'}
+                                size="sm"
+                                onClick={() => setSourceFilter('vector')}
+                            >
+                                Semantic
+                            </Button>
+                            <Button
+                                variant={sourceFilter === 'tag' ? 'primary' : 'secondary'}
+                                size="sm"
+                                onClick={() => setSourceFilter('tag')}
+                            >
+                                Tags
+                            </Button>
+                        </div>
                     </div>
-                    <ResultsGrid results={results} />
+                    <ResultsGrid results={filteredResults} />
                 </>
             )}
 

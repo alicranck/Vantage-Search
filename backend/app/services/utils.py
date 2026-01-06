@@ -1,6 +1,9 @@
 import os
 import subprocess
 import logging
+import traceback
+import json
+
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +21,7 @@ def cut_video_clip(clips_dir: str, video_path: str, start_time: float, end_time:
     duration = end_time - start_time
     
     # Use -ss before -i for fast seeking
+    logger.info(f"FFMPEG Command: ffmpeg -y -ss {start_time} -i {video_path} -t {duration} ...")
     command = [
         "ffmpeg",
         "-y",

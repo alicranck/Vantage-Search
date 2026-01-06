@@ -7,7 +7,7 @@ from pathlib import Path
 from datetime import datetime
 
 from app.services.vector_store import VectorStore
-from app.config import INDEXING_TIMEOUT
+from app.config import INDEXING_TIMEOUT, DETECTION_THRESHOLD
 from app.db.engine import engine, DBClient
 from sqlmodel import Session
 from vision_tools.engine.video_engine import VideoInferenceEngine
@@ -95,7 +95,8 @@ class IndexingService:
         
         # Extract tags if present (detection tool)
         if "boxes" in data:
-            class_indices = list(set([box["cls"] for box in data["boxes"]]))
+            valid_boxes = [box for box in data["boxes"] if box["conf"] >= DETECTION_THRESHOLD]            
+            class_indices = list(set([box["cls"] for box in valid_boxes]))
             class_names = data.get("class_names", [])
             classes = [class_names[i] for i in class_indices if i < len(class_names)]
             if classes:

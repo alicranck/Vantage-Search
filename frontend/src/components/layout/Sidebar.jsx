@@ -70,6 +70,10 @@ export const Sidebar = ({
                     <span className="stat-label">Processing</span>
                     <span className="stat-value">{stats.processing}</span>
                 </div>
+                <div className="stat-item">
+                    <span className="stat-label">Analyzed Frames</span>
+                    <span className="stat-value">{stats.vector_frames ? stats.vector_frames.toLocaleString() : 0}</span>
+                </div>
             </div>
 
             <div className="sidebar-footer">

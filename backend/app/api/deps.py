@@ -1,5 +1,5 @@
 import logging
-from app.db.vector_store import VectorStore
+from app.services.vector_store import VectorStore
 from app.services.indexing import IndexingService
 from app.services.search import SearchService
 from app.config import CHROMA_DB_DIR

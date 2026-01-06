@@ -27,7 +27,7 @@ export const useSearch = () => {
             });
             if (response.ok) {
                 const data = await response.json();
-                setResults(data.results || []);
+                setResults(Array.isArray(data) ? data : (data.results || []));
             } else {
                 setError('Search failed to complete');
                 setResults([]);

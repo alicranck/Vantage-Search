@@ -27,6 +27,7 @@ class Video(SQLModel, table=True):
     owner_id: int = Field(foreign_key="user.id", index=True)
     video_path: str
     filename: str
+    file_size: Optional[int] = None
     status: str
     error: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)

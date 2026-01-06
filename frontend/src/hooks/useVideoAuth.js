@@ -15,6 +15,7 @@ export const useVideoAuth = (videoId) => {
             }
             try {
                 const res = await fetch(`http://localhost:8000/api/videos/${videoId}/sign`, {
+                    method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${userToken}`
                     }

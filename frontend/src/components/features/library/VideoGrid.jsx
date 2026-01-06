@@ -1,6 +1,7 @@
 import React from 'react';
 import { TrashIcon, RefreshIcon, PlayIcon } from '../../common/Icon';
 import { useAuth } from '../../../context/AuthContext';
+import { useVideoAuth } from '../../../hooks/useVideoAuth';
 
 const formatFileSize = (bytes) => {
     if (!bytes || bytes === 0) return '0 B';
@@ -34,29 +35,58 @@ const getStatusText = (status) => {
 };
 
 const LibraryVideoCard = ({ video, onDelete, onRetry, actionLoading }) => {
-    const { accessKey } = useVideoAuth(video.video_id);
-    const isLoading = actionLoading === video.video_id;
+    const { accessKey } = useVideoAuth(video.id);
+    const isLoading = actionLoading === video.id;
+    const videoRef = React.useRef(null);
+    const [isPlaying, setIsPlaying] = React.useState(false);
+
+    const handlePlay = (e) => {
+        e.stopPropagation();
+        if (videoRef.current) {
+            videoRef.current.play();
+            setIsPlaying(true);
+        }
+    };
+
+    const handlePause = () => {
+        setIsPlaying(false);
+    };
 
     return (
         <article className="video-card">
-            <div className="video-thumb">
+            <div className="video-thumb" onClick={handlePlay}>
                 {accessKey ? (
-                    <video preload="metadata">
-                        <source
-                            src={`http://localhost:8000/api/videos/${video.video_id}?token=${accessKey}`}
-                            type="video/mp4"
-                        />
-                    </video>
+                    (() => {
+                        const videoUrl = `http://localhost:8000/api/videos/${video.id}?token=${accessKey}`;
+                        console.log(`[Library] Video URL for ${video.id}:`, videoUrl);
+                        return (
+                            <video
+                                ref={videoRef}
+                                preload="metadata"
+                                controls={isPlaying}
+                                onPause={handlePause}
+                                onEnded={handlePause}
+                                className="w-full h-full object-contain bg-black"
+                            >
+                                <source
+                                    src={videoUrl}
+                                    type="video/mp4"
+                                />
+                            </video>
+                        );
+                    })()
                 ) : (
                     <div className="video-placeholder flex items-center justify-center bg-gray-900 h-full">
                         <div className="animate-pulse bg-gray-800 w-full h-full"></div>
                     </div>
                 )}
-                <div className="video-thumb-overlay">
-                    <div className="video-play-icon">
-                        <PlayIcon size={20} />
+                {!isPlaying && (
+                    <div className="video-thumb-overlay">
+                        <div className="video-play-icon">
+                            <PlayIcon size={20} />
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             <div className="video-body">
@@ -73,14 +103,14 @@ const LibraryVideoCard = ({ video, onDelete, onRetry, actionLoading }) => {
                 </div>
 
                 <p className="mt-2" style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                    Uploaded {formatDate(video.uploaded_at)}
+                    Uploaded {formatDate(video.created_at)}
                 </p>
 
                 <div className="video-actions">
                     {video.status === 'failed' && (
                         <button
                             className="video-action-btn retry"
-                            onClick={(e) => { e.stopPropagation(); onRetry(video.video_id); }}
+                            onClick={(e) => { e.stopPropagation(); onRetry(video.id); }}
                             disabled={isLoading}
                         >
                             <RefreshIcon size={14} />
@@ -89,7 +119,7 @@ const LibraryVideoCard = ({ video, onDelete, onRetry, actionLoading }) => {
                     )}
                     <button
                         className="video-action-btn delete"
-                        onClick={(e) => { e.stopPropagation(); onDelete(video.video_id, video.filename); }}
+                        onClick={(e) => { e.stopPropagation(); onDelete(video.id, video.filename); }}
                         disabled={isLoading}
                     >
                         <TrashIcon size={14} />
@@ -106,7 +136,7 @@ export const VideoGrid = ({ videos, onDelete, onRetry, actionLoading }) => {
         <div className="video-grid">
             {videos.map((video) => (
                 <LibraryVideoCard
-                    key={video.video_id}
+                    key={video.id}
                     video={video}
                     onDelete={onDelete}
                     onRetry={onRetry}

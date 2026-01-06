@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routers import videos, search, clips, system, auth
 from app.db.engine import create_db_and_tables
+from app.api.deps import get_vector_store
 
 # Configure logging
 logging.basicConfig(

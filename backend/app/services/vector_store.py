@@ -9,6 +9,13 @@ from chromadb.config import Settings
 logger = logging.getLogger(__name__)
 
 
+class SearchResults:
+    def __init__(self, ids: List[str], metadatas: List[Dict[str, Any]], distances: List[float]):
+        self.ids = ids
+        self.metadatas = metadatas
+        self.distances = distances
+
+
 class VectorStore:
     """
     Abstraction layer for ChromaDB to store and retrieve video frame embeddings.
@@ -98,9 +105,21 @@ class VectorStore:
     def reset(self):
         self.client.reset()
 
+    def clear_collection(self):
+        """
+        Hard reset: Delete and recreate the collection.
+        Useful when reset() fails due to internal corruption.
+        """
+        try:
+            name = self.collection.name
+            logger.warning(f"Deleting collection {name}...")
+            self.client.delete_collection(name)
+        except Exception as e:
+            logger.warning(f"Could not delete collection (might not exist): {e}")
+            
+        logger.info("Recreating collection...")
+        self.collection = self.client.get_or_create_collection(
+            name=name,
+            metadata={"hnsw:space": "cosine"}
+        )
 
-class SearchResults:
-    def __init__(self, ids: List[str], metadatas: List[Dict[str, Any]], distances: List[float]):
-        self.ids = ids
-        self.metadatas = metadatas
-        self.distances = distances

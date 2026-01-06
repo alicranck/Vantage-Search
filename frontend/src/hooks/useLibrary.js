@@ -23,7 +23,7 @@ export const useLibrary = () => {
             });
             if (response.ok) {
                 const data = await response.json();
-                const vids = data.videos || [];
+                const vids = Array.isArray(data) ? data : (data.videos || []);
                 setVideos(vids);
 
                 // Calculate stats
@@ -61,7 +61,7 @@ export const useLibrary = () => {
                 }
             });
             if (response.ok) {
-                setVideos(prev => prev.filter(v => v.video_id !== videoId));
+                setVideos(prev => prev.filter(v => v.id !== videoId));
                 fetchVideos(); // Update stats
                 return true;
             }

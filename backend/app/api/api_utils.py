@@ -9,18 +9,22 @@ logger = logging.getLogger(__name__)
 VIDEO_SUFFIXES = {".mp4", ".avi", ".mkv", ".mov", ".wmv", ".flv", ".webm"}
 
 
-async def upload_video(file: UploadFile):
+async def upload_video_file(file: UploadFile):
+
     file_extension = os.path.splitext(file.filename)[1]
     video_id = str(uuid.uuid4())
+
     file_name = f"{video_id}{file_extension}"
     file_path = UPLOAD_DIR / file_name
     
     with open(file_path, "wb") as f:
         f.write(await file.read())
+
+    file_size = file_path.stat().st_size
             
     logger.info(f"Video uploaded: {file_path}")
 
-    return video_id, file_path
+    return video_id, file_path, file_size
 
 
 def search_video_file(video_id: str):
@@ -30,7 +34,7 @@ def search_video_file(video_id: str):
     return None
 
 
-def delete_video(video_id: str):
+def delete_video_file(video_id: str):
     deleted_files = []
     for video_file in UPLOAD_DIR.glob(f"{video_id}.*"):
         if video_file.is_file() and video_file.suffix in VIDEO_SUFFIXES:
