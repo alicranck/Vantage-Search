@@ -36,3 +36,24 @@ def cut_video_clip(clips_dir: str, video_path: str, start_time: float, end_time:
     subprocess.run(command, check=True, capture_output=True)
     
     return output_path
+
+
+def _get_calibration_params(calibration_file) -> tuple:
+    """Load strict min/max similarity thresholds from calibration results."""
+    if not calibration_file.exists():
+        raise FileNotFoundError(f"Calibration results not found at {calibration_file}. "
+                                    "Please run 'scripts/calibrate_embedder.py' to generate them.")
+    try:
+        with open(calibration_file, 'r') as f:
+            data = json.load(f)
+
+        stats = data.get("stats")
+        off_max = stats.get("Off", {}).get("max")
+        perfect_mean = stats.get("Perfect", {}).get("mean")
+        calibration_params = (off_max * 1.1, perfect_mean)
+    except Exception as e:
+        logger.error(f"Failed to initialize calibration: {e}")
+        logger.error(f"traceback: {traceback.format_exc()}")
+        raise
+
+    return calibration_params

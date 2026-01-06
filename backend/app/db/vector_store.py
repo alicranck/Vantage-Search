@@ -1,3 +1,4 @@
+
 import chromadb
 from chromadb.config import Settings
 import uuid
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class VectorStore:
     """
-    Abstration layer for ChromaDB to store and retrieve video frame embeddings.
+    Abstraction layer for ChromaDB to store and retrieve video frame embeddings.
     """
     def __init__(self, collection_name: str = "video_frames", persist_dir: str = "chroma_db"):
         self.client = chromadb.PersistentClient(path=persist_dir, settings=Settings(allow_reset=True))
@@ -35,16 +36,52 @@ class VectorStore:
         )
 
     def search_embeddings(self, query_embedding: List[float], n_results: int = 5,
-                                     where: Optional[Dict] = None) -> Dict[str, Any]:
+                                     where: Optional[Dict] = None) -> SearchResults:
         """
         Searches for the nearest neighbors of the query embedding.
         """
-        results = self.collection.query(
+        raw_results = self.collection.query(
             query_embeddings=[query_embedding],
             n_results=n_results,
             where=where
         )
-        return results
+        return self.collate(raw_results)
+
+    def search_by_tags(self, tags: List[str], owner_id: Optional[int] = None, limit: int = 10) -> SearchResults:
+        """
+        Search for records where 'detected_classes' metadata contains any of the provided tags.
+        """
+        if not tags:
+            return SearchResults(ids=[], metadatas=[], distances=[])
+
+        or_clauses = [{"detected_classes": {"$contains": tag}} for tag in tags]
+        
+        if len(or_clauses) == 1:
+            tag_where_clause = or_clauses[0]
+        else:
+            tag_where_clause = {"$or": or_clauses}
+        
+        # Combine with owner_id if needed
+        if owner_id:
+            final_where = {"$and": [{"owner_id": owner_id}, tag_where_clause]}
+        else:
+            final_where = tag_where_clause
+            
+        logger.debug(f"Tag search where clause: {final_where}")
+
+        try:
+            raw_results = self.collection.get(
+                where=final_where,
+                limit=limit,
+                include=["metadatas"]
+            )
+            
+            return SearchResults(ids=raw_results['ids'], 
+                                 metadatas=raw_results['metadatas'], 
+                                  distances=[0.0] * len(raw_results['ids']))
+        except Exception as e:
+            logger.warning(f"Tag search failed: {e}")
+            return SearchResults(ids=[], metadatas=[], distances=[])
 
     def delete_embeddings(self, where: Dict[str, Any]):
         """
@@ -53,8 +90,22 @@ class VectorStore:
         """
         self.collection.delete(where=where)
 
+    def collate(self, raw_results: Dict[str, Any]) -> SearchResults:
+        return SearchResults(
+            ids=raw_results['ids'][0],
+            metadatas=raw_results['metadatas'][0],
+            distances=raw_results['distances'][0]
+        )
+        
     def count(self) -> int:
         return self.collection.count()
     
     def reset(self):
         self.client.reset()
+
+
+class SearchResults:
+    def __init__(self, ids: List[str], metadatas: List[Dict[str, Any]], distances: List[float]):
+        self.ids = ids
+        self.metadatas = metadatas
+        self.distances = distances
