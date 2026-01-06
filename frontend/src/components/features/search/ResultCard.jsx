@@ -1,7 +1,9 @@
 import React, { useRef } from 'react';
 import { PlayIcon } from '../../common/Icon';
+import { useVideoAuth } from '../../../hooks/useVideoAuth';
 
 export const ResultCard = ({ result }) => {
+    const { accessKey } = useVideoAuth(result.metadata.video_id);
     const videoRef = useRef(null);
 
     const formatTime = (seconds) => {
@@ -43,9 +45,9 @@ export const ResultCard = ({ result }) => {
         }
     };
 
-    const videoSrc = result.clip_url
-        ? `http://localhost:8000${result.clip_url}`
-        : `http://localhost:8000/api/videos/${result.metadata.video_id}`;
+    const videoSrc = accessKey ? (result.clip_url
+        ? `http://localhost:8000${result.clip_url}?token=${accessKey}`
+        : `http://localhost:8000/api/videos/${result.metadata.video_id}?token=${accessKey}`) : '';
 
     const primaryTag = result.metadata.detected_classes?.split(', ')[0];
 
@@ -80,6 +82,15 @@ export const ResultCard = ({ result }) => {
             <div className="result-body">
                 <div className="result-meta">
                     <div className="result-tags">
+                        {result.match_type && (
+                            <span className="result-tag" style={{
+                                backgroundColor: result.match_type === 'vector' ? 'rgba(124, 58, 237, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                                color: result.match_type === 'vector' ? '#7c3aed' : '#10b981',
+                                border: `1px solid ${result.match_type === 'vector' ? 'rgba(124, 58, 237, 0.2)' : 'rgba(16, 185, 129, 0.2)'}`
+                            }}>
+                                {result.match_type === 'vector' ? 'Semantic' : 'Tag'}
+                            </span>
+                        )}
                         {primaryTag && (
                             <span className="result-tag">{primaryTag}</span>
                         )}

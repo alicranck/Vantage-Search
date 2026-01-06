@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+
+const API_BASE = 'http://localhost:8000/api';
 
 export const useSearch = () => {
     const [query, setQuery] = useState('');
@@ -7,15 +10,21 @@ export const useSearch = () => {
     const [searched, setSearched] = useState(false);
     const [error, setError] = useState(null);
 
+    const { token } = useAuth();
+
     const performSearch = async (searchQuery) => {
-        if (!searchQuery) return;
+        if (!searchQuery || !token) return;
 
         setLoading(true);
         setSearched(true);
         setError(null);
 
         try {
-            const response = await fetch(`http://localhost:8000/api/search?q=${encodeURIComponent(searchQuery)}&limit=10`);
+            const response = await fetch(`${API_BASE}/search?q=${encodeURIComponent(searchQuery)}&limit=10`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             if (response.ok) {
                 const data = await response.json();
                 setResults(data.results || []);

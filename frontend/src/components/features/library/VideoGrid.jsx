@@ -1,5 +1,6 @@
 import React from 'react';
 import { TrashIcon, RefreshIcon, PlayIcon } from '../../common/Icon';
+import { useAuth } from '../../../context/AuthContext';
 
 const formatFileSize = (bytes) => {
     if (!bytes || bytes === 0) return '0 B';
@@ -33,17 +34,24 @@ const getStatusText = (status) => {
 };
 
 const LibraryVideoCard = ({ video, onDelete, onRetry, actionLoading }) => {
+    const { accessKey } = useVideoAuth(video.video_id);
     const isLoading = actionLoading === video.video_id;
 
     return (
         <article className="video-card">
             <div className="video-thumb">
-                <video preload="metadata">
-                    <source
-                        src={`http://localhost:8000/api/videos/${video.video_id}`}
-                        type="video/mp4"
-                    />
-                </video>
+                {accessKey ? (
+                    <video preload="metadata">
+                        <source
+                            src={`http://localhost:8000/api/videos/${video.video_id}?token=${accessKey}`}
+                            type="video/mp4"
+                        />
+                    </video>
+                ) : (
+                    <div className="video-placeholder flex items-center justify-center bg-gray-900 h-full">
+                        <div className="animate-pulse bg-gray-800 w-full h-full"></div>
+                    </div>
+                )}
                 <div className="video-thumb-overlay">
                     <div className="video-play-icon">
                         <PlayIcon size={20} />
