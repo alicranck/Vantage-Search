@@ -10,6 +10,9 @@ services:
       - "8000:8000"
     volumes:
       - ./backend/data:/app/data
+      - vantagesearch_models:/app/models
+      - vantagesearch_cache:/root/.cache
+      - vantagesearch_chroma:/app/chroma_db
     restart: unless-stopped
 
   frontend:
@@ -22,3 +25,8 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  vantagesearch_models:
+  vantagesearch_cache:
+  vantagesearch_chroma:
