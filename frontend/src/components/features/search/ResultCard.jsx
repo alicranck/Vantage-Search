@@ -13,8 +13,8 @@ export const ResultCard = ({ result }) => {
     };
 
     const getScoreVariant = (confidence) => {
-        if (confidence >= 75) return 'high';
-        if (confidence >= 50) return 'medium';
+        if (confidence >= 80) return 'high';
+        if (confidence >= 65) return 'medium';
         return 'low';
     };
 
@@ -111,14 +111,18 @@ export const ResultCard = ({ result }) => {
                             <span key={idx} className="result-tag">{tag}</span>
                         ))}
                         {result.metadata.match_count > 1 && (
-                            <span className="result-id">+{result.metadata.match_count - 1} moments</span>
+                            <span className="result-tag" style={{ opacity: 0.7, fontStyle: 'italic' }}>
+                                +{result.metadata.match_count - 1} {result.metadata.match_count - 1 === 1 ? 'moment' : 'moments'}
+                            </span>
                         )}
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    {result.confidence >= 40 && (
-                        <div className={`score-badge ${scoreVariant}`}></div>
+                <div className="flex items-center gap-3" style={{ minWidth: '100px', justifyContent: 'flex-end' }}>
+                    {result.confidence >= 50 && (
+                        <div className={`score-badge ${scoreVariant}`}>
+                            {Math.round(result.confidence)}
+                        </div>
                     )}
                     <button
                         className="btn btn-secondary btn-sm"

@@ -18,6 +18,7 @@ export const SearchPage = () => {
     const [sourceFilter, setSourceFilter] = useState('all');
 
     const filteredResults = results.filter(r => {
+        if (r.confidence < 50) return false;
         if (sourceFilter === 'all') return true;
         if (sourceFilter === 'vector') return r.match_type === 'vector';
         if (sourceFilter === 'tag') return r.match_type !== 'vector';
@@ -40,7 +41,7 @@ export const SearchPage = () => {
                 </div>
             )}
 
-            {!loading && results.length > 0 && (
+            {!loading && filteredResults.length > 0 && (
                 <>
                     <div className="results-header">
                         <p className="results-count">
@@ -75,7 +76,7 @@ export const SearchPage = () => {
                 </>
             )}
 
-            {!loading && searched && results.length === 0 && (
+            {!loading && searched && filteredResults.length === 0 && (
                 <div className="empty-state">
                     <div className="empty-state-icon">
                         <SearchXIcon size={48} strokeWidth={1.25} />
