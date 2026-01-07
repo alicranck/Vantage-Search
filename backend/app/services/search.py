@@ -15,7 +15,7 @@ from app.config import (
     STOP_WORDS,
     SIGLIP2_MODEL_ID
 )
-from vision_tools.core.tools.embedder import SigLIP2Embedder
+from vision_tools.core.tools.embedder import OVSigLIP2Embedder
 from .utils import cut_video_clip
 
 logger = logging.getLogger(__name__)
@@ -28,11 +28,11 @@ class SearchService:
         self.device = device
         self.embedder = self._load_embedder()
 
-    def _load_embedder(self) -> SigLIP2Embedder:
-        emebdder = SigLIP2Embedder(model_id=SIGLIP2_MODEL_ID,
+    def _load_embedder(self) -> OVSigLIP2Embedder:
+        emebdder = OVSigLIP2Embedder(model_id=SIGLIP2_MODEL_ID,
                                         config={}, device=self.device)
         emebdder.load_tool({})
-        logger.info("SigLIP2Embedder initialized for search")
+        logger.info("OVSigLIP2Embedder initialized for search")
         return emebdder
 
     def search_videos(self, query: str, owner_id: int, limit: int = 5) -> List[Moment]:

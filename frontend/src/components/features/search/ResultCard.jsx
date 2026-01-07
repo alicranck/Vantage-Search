@@ -13,13 +13,12 @@ export const ResultCard = ({ result }) => {
     };
 
     const getScoreVariant = (confidence) => {
-        if (confidence >= 80) return 'high';
+        if (confidence >= 75) return 'high';
         if (confidence >= 50) return 'medium';
         return 'low';
     };
 
-    const score = Math.round(result.confidence || 0);
-    const scoreVariant = getScoreVariant(score);
+    const scoreVariant = getScoreVariant(result.confidence || 0);
 
     const handlePlay = () => {
         if (videoRef.current) {
@@ -57,7 +56,9 @@ export const ResultCard = ({ result }) => {
         console.log(`[Result] Video URL for ${result.metadata.video_id}:`, videoSrc);
     }
 
-    const primaryTag = result.metadata.detected_classes?.split(', ')[0];
+    const tags = result.metadata.detected_classes
+        ? result.metadata.detected_classes.split(', ').filter(Boolean).slice(0, 5)
+        : [];
 
     return (
         <article className="result-card">
@@ -106,22 +107,19 @@ export const ResultCard = ({ result }) => {
                                 {result.match_type === 'vector' ? 'Semantic' : 'Tag'}
                             </span>
                         )}
-                        {primaryTag && (
-                            <span className="result-tag">{primaryTag}</span>
-                        )}
+                        {tags.map((tag, idx) => (
+                            <span key={idx} className="result-tag">{tag}</span>
+                        ))}
                         {result.metadata.match_count > 1 && (
-                            <span className="result-id">+{result.metadata.match_count - 1} more</span>
+                            <span className="result-id">+{result.metadata.match_count - 1} moments</span>
                         )}
-                    </div>
-                    <div className="result-id font-mono" style={{ fontSize: '9px', color: 'var(--text-tertiary)' }}>
-                        conf: {result.confidence?.toFixed(1)}%
                     </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <div className={`score-badge ${scoreVariant}`}>
-                        {score}
-                    </div>
+                    {result.confidence >= 40 && (
+                        <div className={`score-badge ${scoreVariant}`}></div>
+                    )}
                     <button
                         className="btn btn-secondary btn-sm"
                         onClick={handlePlay}

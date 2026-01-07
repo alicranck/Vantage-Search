@@ -51,7 +51,7 @@ class IndexingService:
         """Internal method to run the actual indexing process"""
         pipeline_config = PipelineConfig(
             tool_settings={
-                "embedding": {
+                "ov_embedding": {
                     "trigger": {"type": "stride", "value": 30}
                 },
                 "ov_detection": {
