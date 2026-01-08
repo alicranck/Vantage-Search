@@ -1,6 +1,6 @@
 # Vantage-Search
 
-A professional video search platform powered by AI. Index your video library and search for moments using natural language queries.
+A video search platform powered by AI. Index your video library and search for moments using natural language queries.
 
 ## Features
 - Natural Language Search: AI-powered semantic understanding for video clips.
